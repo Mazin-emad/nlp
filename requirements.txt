@@ -1,0 +1,6 @@
+flask==2.0.1
+torch==2.2.0
+torchvision==0.17.0
+Pillow==10.2.0
+transformers==4.38.2
+numpy==1.26.4 

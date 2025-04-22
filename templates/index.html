@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Captioning App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .upload-section {
+        text-align: center;
+        margin: 20px 0;
+      }
+      .preview-section {
+        margin: 20px 0;
+        text-align: center;
+      }
+      #imagePreview {
+        max-width: 100%;
+        max-height: 400px;
+        display: none;
+        margin: 0 auto;
+      }
+      .caption-section {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        min-height: 50px;
+      }
+      .btn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      .btn:hover {
+        background-color: #0056b3;
+      }
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Image Captioning App</h1>
+
+      <div class="upload-section">
+        <input
+          type="file"
+          id="imageInput"
+          accept="image/*"
+          style="display: none"
+        />
+        <button
+          class="btn"
+          onclick="document.getElementById('imageInput').click()"
+        >
+          Select Image
+        </button>
+      </div>
+
+      <div class="preview-section">
+        <img id="imagePreview" alt="Preview" />
+      </div>
+
+      <div class="loading" id="loading">Generating caption...</div>
+
+      <div class="caption-section" id="caption">
+        Caption will appear here...
+      </div>
+    </div>
+
+    <script>
+      const imageInput = document.getElementById("imageInput");
+      const imagePreview = document.getElementById("imagePreview");
+      const captionDiv = document.getElementById("caption");
+      const loadingDiv = document.getElementById("loading");
+
+      imageInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = "block";
+            generateCaption(file);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      async function generateCaption(file) {
+        loadingDiv.style.display = "block";
+        captionDiv.textContent = "";
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (data.error) {
+            captionDiv.textContent = "Error: " + data.error;
+          } else {
+            captionDiv.textContent = data.caption;
+          }
+        } catch (error) {
+          captionDiv.textContent = "Error: " + error.message;
+        } finally {
+          loadingDiv.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
