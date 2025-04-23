@@ -33,6 +33,10 @@ models = {
     'git': {
         'model': GitForCausalLM.from_pretrained("microsoft/git-base-coco"),
         'processor': GitProcessor.from_pretrained("microsoft/git-base-coco")
+    },
+    'blip-base': {
+        'model': BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base"),
+        'processor': BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     }
 }
 
@@ -72,6 +76,11 @@ def predict_with_git(image):
     out = models['git']['model'].generate(**inputs)
     return models['git']['processor'].decode(out[0], skip_special_tokens=True)
 
+def predict_with_blip_base(image):
+    inputs = models['blip-base']['processor'](images=image, return_tensors="pt").to(device)
+    out = models['blip-base']['model'].generate(**inputs)
+    return models['blip-base']['processor'].decode(out[0], skip_special_tokens=True)
+
 def predict_step(image_path):
     # Load and preprocess the image
     image = Image.open(image_path)
@@ -82,7 +91,8 @@ def predict_step(image_path):
     captions = {
         'vit-gpt2': predict_with_vit_gpt2(image),
         'blip': predict_with_blip(image),
-        'git': predict_with_git(image)
+        'git': predict_with_git(image),
+        'blip-base': predict_with_blip_base(image)
     }
     
     # Translate all captions to Arabic
