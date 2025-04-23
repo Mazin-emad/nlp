@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Captioning App</title>
+    <title>Image Captioning</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -18,41 +18,47 @@
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      h1 {
-        color: #333;
-        text-align: center;
-      }
       .upload-section {
         text-align: center;
-        margin: 20px 0;
+        margin-bottom: 20px;
       }
-      .preview-section {
-        margin: 20px 0;
-        text-align: center;
-      }
-      #imagePreview {
+      .image-preview {
         max-width: 100%;
-        max-height: 400px;
-        display: none;
-        margin: 0 auto;
-      }
-      .caption-section {
         margin: 20px 0;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        min-height: 50px;
+        display: none;
       }
-      .btn {
+      .results {
+        margin-top: 20px;
+      }
+      .caption-card {
+        background-color: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+      }
+      .model-name {
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 10px;
+      }
+      .caption-text {
+        margin-bottom: 10px;
+      }
+      .translation {
+        color: #666;
+        font-style: italic;
+      }
+      .upload-btn {
         background-color: #007bff;
         color: white;
         padding: 10px 20px;
         border: none;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
         font-size: 16px;
       }
-      .btn:hover {
+      .upload-btn:hover {
         background-color: #0056b3;
       }
       .loading {
@@ -64,8 +70,7 @@
   </head>
   <body>
     <div class="container">
-      <h1>Image Captioning App</h1>
-
+      <h1 style="text-align: center">Image Captioning</h1>
       <div class="upload-section">
         <input
           type="file"
@@ -74,28 +79,23 @@
           style="display: none"
         />
         <button
-          class="btn"
+          class="upload-btn"
           onclick="document.getElementById('imageInput').click()"
         >
-          Select Image
+          Upload Image
         </button>
       </div>
-
-      <div class="preview-section">
-        <img id="imagePreview" alt="Preview" />
+      <img id="imagePreview" class="image-preview" />
+      <div class="loading" id="loading">
+        <p>Processing image and generating captions...</p>
       </div>
-
-      <div class="loading" id="loading">Generating caption...</div>
-
-      <div class="caption-section" id="caption">
-        Caption will appear here...
-      </div>
+      <div class="results" id="results"></div>
     </div>
 
     <script>
       const imageInput = document.getElementById("imageInput");
       const imagePreview = document.getElementById("imagePreview");
-      const captionDiv = document.getElementById("caption");
+      const resultsDiv = document.getElementById("results");
       const loadingDiv = document.getElementById("loading");
 
       imageInput.addEventListener("change", function (e) {
@@ -105,36 +105,61 @@
           reader.onload = function (e) {
             imagePreview.src = e.target.result;
             imagePreview.style.display = "block";
-            generateCaption(file);
+            processImage(file);
           };
           reader.readAsDataURL(file);
         }
       });
 
-      async function generateCaption(file) {
+      function processImage(file) {
         loadingDiv.style.display = "block";
-        captionDiv.textContent = "";
+        resultsDiv.innerHTML = "";
 
         const formData = new FormData();
         formData.append("file", file);
 
-        try {
-          const response = await fetch("/predict", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await response.json();
+        fetch("/predict", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            loadingDiv.style.display = "none";
+            if (data.error) {
+              resultsDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+              return;
+            }
 
-          if (data.error) {
-            captionDiv.textContent = "Error: " + data.error;
-          } else {
-            captionDiv.textContent = data.caption;
-          }
-        } catch (error) {
-          captionDiv.textContent = "Error: " + error.message;
-        } finally {
-          loadingDiv.style.display = "none";
-        }
+            const englishCaptions = data.english;
+            const arabicTranslations = data.arabic;
+
+            Object.entries(englishCaptions).forEach(([model, caption]) => {
+              const card = document.createElement("div");
+              card.className = "caption-card";
+
+              const modelName = document.createElement("div");
+              modelName.className = "model-name";
+              modelName.textContent = model.toUpperCase();
+
+              const englishText = document.createElement("div");
+              englishText.className = "caption-text";
+              englishText.textContent = caption;
+
+              const arabicText = document.createElement("div");
+              arabicText.className = "translation";
+              arabicText.textContent = arabicTranslations[model];
+
+              card.appendChild(modelName);
+              card.appendChild(englishText);
+              card.appendChild(arabicText);
+
+              resultsDiv.appendChild(card);
+            });
+          })
+          .catch((error) => {
+            loadingDiv.style.display = "none";
+            resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+          });
       }
     </script>
   </body>
